@@ -1,0 +1,44 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Which Card//EN
+CALSCALE:GREGORIAN
+X-WR-CALNAME:Credit card reminders
+BEGIN:VEVENT
+UID:discover-quarterly@which-card
+DTSTAMP:20261014T225109Z
+DTSTART;VALUE=DATE:20261215
+SUMMARY:Activate Discover 5% for next quarter
+DESCRIPTION:Discover app > Cashback Bonus > Activate. New categories start the 1st of next month. Also update the Which Card site.
+RRULE:FREQ=MONTHLY;INTERVAL=3
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Activate Discover 5% for next quarter
+TRIGGER:PT9H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:chase-appletv@which-card
+DTSTAMP:20261014T225109Z
+DTSTART;VALUE=DATE:20261201
+SUMMARY:Activate Chase Apple TV (deadline Dec 31)
+DESCRIPTION:Chase app > Benefits > Apple TV. One-time\, 12 months free.
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Activate Chase Apple TV (deadline Dec 31)
+TRIGGER:PT9H
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:chase-doordash@which-card
+DTSTAMP:20261014T225109Z
+DTSTART;VALUE=DATE:20261020
+SUMMARY:Use $10 DoorDash promo (Chase)
+DESCRIPTION:One non-restaurant DoorDash order this month\, paid with Sapphire Preferred. Doesn't roll over.
+RRULE:FREQ=MONTHLY;BYMONTHDAY=20
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Use $10 DoorDash promo (Chase)
+TRIGGER:PT9H
+END:VALARM
+END:VEVENT
+END:VCALENDAR

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Which Card?</title>
+<meta name="description" content="Pocket guide: which credit card to use for each purchase.">
+<meta name="theme-color" content="#111418">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Which Card">
+<style>
+  :root {
+    --bg: #f6f5f2; --surface: #ffffff; --text: #16181c; --muted: #636770; --line: #e3e1dc; --accent: #2c3e8c;
+    --discover: #d9600f; --discover-bg: #fdf0e6;
+    --amex: #0a66c2; --amex-bg: #e8f1fb;
+    --chase: #2c3e8c; --chase-bg: #eceefa;
+    --good: #1f7a3f; --good-bg: #e5f4ea; --bad: #b3261e; --bad-bg: #fbe9e7;
+    --warn-bg: #fff6d9; --warn-line: #ecd27a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111418; --surface: #1a1e24; --text: #eceef1; --muted: #9aa0aa; --line: #2b3038; --accent: #8f9ff0;
+      --discover: #ff8a3d; --discover-bg: #2e1e12;
+      --amex: #5aa7f0; --amex-bg: #14253a;
+      --chase: #8f9ff0; --chase-bg: #1c2140;
+      --good: #5fd08a; --good-bg: #13291c; --bad: #ff8a80; --bad-bg: #2f1715;
+      --warn-bg: #2e2810; --warn-line: #5c4f1c;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px 24px; }
+  header { padding: calc(16px + env(safe-area-inset-top)) 0 4px; }
+  h1 { font-size: 24px; margin: 0; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); font-size: 13px; }
+  h2 { font-size: 19px; margin: 22px 0 10px; }
+  h3 { font-size: 16px; margin: 18px 0 8px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  /* bottom tab bar */
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex;
+    background: var(--surface); border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tabbar button {
+    flex: 1; background: none; border: 0; padding: 10px 4px 12px; font-size: 12px; font-weight: 600; color: var(--muted);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .tabbar button span { font-size: 21px; line-height: 1; }
+  .tabbar button[aria-selected="true"] { color: var(--accent); }
+  .tabbar .badge { background: var(--bad); color: #fff; border-radius: 999px; font-size: 10px; padding: 0 5px; margin-left: 2px; }
+  section[hidden] { display: none; }
+
+  .quarter { background: var(--discover-bg); color: var(--text); border-radius: 12px; padding: 10px 12px; font-size: 14px; margin: 10px 0 4px; }
+  .quarter b { color: var(--discover); }
+
+  /* category grid */
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
+  .cat {
+    display: flex; align-items: center; gap: 10px; text-align: left; background: var(--surface);
+    border: 1.5px solid var(--line); border-radius: 12px; padding: 11px 10px; font-size: 14px; font-weight: 600; min-height: 56px;
+  }
+  .cat .ic { font-size: 22px; flex: none; }
+  .cat .bonus { display: block; font-size: 11px; font-weight: 700; color: var(--discover); }
+
+  /* result view */
+  .back { background: none; border: 0; color: var(--accent); font-weight: 600; padding: 12px 0 4px; font-size: 15px; }
+  .res-title { display: flex; align-items: center; gap: 10px; margin: 4px 0 4px; }
+  .res-title .ic { font-size: 30px; }
+  .res-title h2 { margin: 0; }
+  .res-sub { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+  .opt { display: flex; gap: 12px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 8px; }
+  .opt.best { border: 2px solid var(--good); }
+  .rank { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 800; background: var(--line); }
+  .opt.best .rank { background: var(--good); color: #fff; }
+  .opt .body { flex: 1; min-width: 0; }
+  .opt .card { font-weight: 800; font-size: 16px; }
+  .opt .note { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .opt .rate { flex: none; text-align: right; }
+  .opt .rate b { display: block; font-size: 20px; line-height: 1.1; }
+  .opt .rate small { font-size: 11px; color: var(--muted); }
+  .opt.avoid { opacity: .75; }
+  .opt.avoid .rate b { color: var(--bad); }
+  .bestlabel { display: inline-block; font-size: 11px; font-weight: 800; color: var(--good); background: var(--good-bg); border-radius: 6px; padding: 1px 6px; margin-left: 6px; vertical-align: 2px; }
+  .d { color: var(--discover); } .a { color: var(--amex); } .c { color: var(--chase); }
+  .fine { color: var(--muted); font-size: 12px; margin: 10px 2px; }
+
+  /* activate view */
+  .cardhead { display: flex; align-items: center; justify-content: space-between; margin: 22px 0 8px; }
+  .cardhead h2 { margin: 0; }
+  .item { display: flex; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 8px; }
+  .item input[type=checkbox] { flex: none; width: 22px; height: 22px; margin-top: 1px; accent-color: var(--good); }
+  .item .info-dot { flex: none; width: 22px; text-align: center; font-size: 16px; }
+  .item .t { font-weight: 700; font-size: 15px; }
+  .item .h { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .item.done .t { text-decoration: line-through; color: var(--muted); }
+  .tag { display: inline-block; font-size: 11px; font-weight: 800; border-radius: 6px; padding: 1px 6px; margin-top: 5px; }
+  .tag.now { color: var(--bad); background: var(--bad-bg); }
+  .tag.soon { color: var(--discover); background: var(--discover-bg); }
+  .tag.later { color: var(--muted); background: var(--line); }
+  .tag.ok { color: var(--good); background: var(--good-bg); }
+  .calbtn { display: block; text-align: center; text-decoration: none; background: var(--accent); color: #fff; font-weight: 700; border-radius: 12px; padding: 12px; margin: 14px 0 4px; }
+  @media (prefers-color-scheme: dark) { .calbtn { color: #111418; } }
+
+  ul.tips { margin: 0; padding-left: 20px; }
+  ul.tips li { margin: 7px 0; font-size: 15px; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 28px; border-top: 1px solid var(--line); padding-top: 12px; }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>💳 Which Card?</h1>
+  <div class="sub">Discover it · Amex Blue Cash Preferred · Chase Sapphire Preferred</div>
+</header>
+
+<!-- ============ TAB 1: PICK A CATEGORY ============ -->
+<section id="tab-use">
+  <div id="pick">
+    <div class="quarter" id="quarterNote"></div>
+    <div class="grid" id="grid"></div>
+    <p class="fine" id="valueNote"></p>
+  </div>
+  <div id="result" hidden>
+    <button class="back" id="back">‹ All categories</button>
+    <div class="res-title"><span class="ic" id="rIcon"></span><h2 id="rName"></h2></div>
+    <div class="res-sub" id="rSub"></div>
+    <div id="rList"></div>
+    <p class="fine" id="rTip"></p>
+  </div>
+</section>
+
+<!-- ============ TAB 2: ACTIVATE ============ -->
+<section id="tab-activate" hidden>
+  <h2>Activate &amp; enroll</h2>
+  <div class="sub">Check items off as you do them. Checkmarks are saved on this phone only.</div>
+  <a class="calbtn" href="reminders.ics">📅 Add reminders to my calendar</a>
+  <div class="sub" style="text-align:center">Quarterly Discover activation, Apple TV deadline, monthly DoorDash promo</div>
+  <div id="actList"></div>
+</section>
+
+<!-- ============ TAB 3: TIPS ============ -->
+<section id="tab-tips" hidden>
+  <h2>Good to know</h2>
+  <h3>Tie-breakers</h3>
+  <ul class="tips">
+    <li><b>Walmart, Target, warehouse clubs</b> don't count as supermarkets for Amex 6%.</li>
+    <li><b>Restaurant inside a hotel or store, or a bakery</b> may not code as a restaurant for Discover.</li>
+    <li><b>Pay utilities online or by phone</b>, directly to the provider — not at a carrier store or through a landlord/HOA.</li>
+    <li><b>Apple Pay / Google Pay / PayPal</b> can hide the merchant category. For bonus categories, use the physical card or pay directly when in doubt.</li>
+    <li><b>Discover's $1,500 cap is shared</b> across all its 5% categories each quarter. Big utility bills use it up fast — check progress in the app.</li>
+    <li><b>Amex $6,000 grocery cap</b> is per calendar year (resets Jan 1). After that, groceries earn 1%.</li>
+  </ul>
+  <h3>Travel</h3>
+  <ul class="tips">
+    <li><b>Rental cars:</b> always Chase (primary coverage). Decline the rental company's CDW.</li>
+    <li><b>Abroad:</b> Chase first, Discover as backup (less accepted overseas), leave Amex home (2.7% fee).</li>
+    <li><b>Pay the whole trip with Chase</b> to get trip cancellation, delay and baggage coverage.</li>
+  </ul>
+  <h3>Points &amp; fees</h3>
+  <ul class="tips">
+    <li><b>Chase points:</b> best used for travel (airline transfers or Points Boost in Chase Travel). Cashing out at 1¢ wastes value.</li>
+    <li><b>Chase 2026 changes:</b> 10% anniversary bonus discontinued (last payout by Jan 31, 2027). Hyatt transfers now 4:3. Most other partners still 1:1.</li>
+    <li><b>Chase hotel credit:</b> the first $100 of Chase Travel hotel spend earns no points; portal bookings often skip hotel loyalty points.</li>
+    <li><b>Both $95 fees can pay for themselves:</b> Amex via the Disney credit + groceries; Chase via the hotel credit + DoorDash promos.</li>
+    <li><b>Pay in full every month.</b> Set autopay for the statement balance on all three — interest wipes out rewards.</li>
+    <li><b>Keep Discover open</b> — no fee, and it helps credit age and utilization.</li>
+  </ul>
+  <footer>
+    Sources: <a href="https://www.discover.com/credit-cards/cash-back/cashback-calendar.html">Discover calendar</a> ·
+    <a href="https://www.americanexpress.com/us/credit-cards/card/blue-cash-preferred/">Amex BCP</a> ·
+    <a href="https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred">Chase Sapphire Preferred</a>.
+    Info as of Oct 14, 2026. Terms change — check issuer apps before big purchases. Personal reference, not financial advice.
+  </footer>
+</section>
+
+</div>
+
+<nav class="tabbar" role="tablist">
+  <button role="tab" data-tab="use" aria-selected="true"><span>🧭</span>Which card</button>
+  <button role="tab" data-tab="activate" aria-selected="false"><span>✅</span><div>Activate<b class="badge" id="badge" hidden></b></div></button>
+  <button role="tab" data-tab="tips" aria-selected="false"><span>💡</span>Tips</button>
+</nav>
+
+<script>
+/* =====================================================================
+   EDIT HERE EACH QUARTER
+   ===================================================================== */
+
+// Discover 5% calendar. Use category ids from CATEGORIES below.
+// Leave a quarter out (or use null) when Discover hasn't announced it yet.
+const DISCOVER_QUARTERS = {
+  '2026-Q1': { label: 'Grocery stores, wholesale clubs, select streaming', cats: ['groceries', 'warehouse', 'streaming'] },
+  '2026-Q2': { label: 'Restaurants, home improvement stores',              cats: ['dining', 'home'] },
+  '2026-Q3': { label: 'Gas stations, transportation, drug stores',          cats: ['gas', 'transit', 'lyft', 'drugstore'] },
+  '2026-Q4': { label: 'Restaurants, entertainment, utilities',              cats: ['dining', 'entertainment', 'utilities'] },
+  // '2027-Q1': { label: '...', cats: [...] },   // ← add when announced (usually mid-December)
+};
+
+// What a Chase point is worth to you, in cents. 1.0 = cash out; 1.25+ = travel via Points Boost / transfers.
+const CHASE_CPP = 1.25;
+
+/* ---------------------------------------------------------------------
+   Category table. For each card: [rate shown, value in % (cash-equivalent), note]
+   Chase values are in points; they get multiplied by CHASE_CPP.
+   Discover's 1% base is bumped to 5% automatically in bonus quarters.
+   --------------------------------------------------------------------- */
+const CATEGORIES = [
+  { id: 'groceries', icon: '🛒', name: 'Groceries', sub: 'Supermarkets, in store or their own site',
+    amex:  ['6%', 6, 'U.S. supermarkets, first $6,000/yr (then 1%). Not Walmart/Target/clubs.'],
+    chase: ['1x', 1, 'Online grocery earns 3x (not Target, Walmart or clubs).'],
+    disc:  ['1%', 1, ''] },
+  { id: 'dining', icon: '🍽️', name: 'Restaurants', sub: 'Restaurants, cafes, fast food, bars',
+    chase: ['3x', 3, 'Dining incl. takeout.'],
+    amex:  ['1%', 1, ''],
+    disc:  ['1%', 1, ''] },
+  { id: 'delivery', icon: '🛵', name: 'Food delivery', sub: 'DoorDash, Uber Eats, Grubhub',
+    chase: ['3x', 3, 'Plus free DashPass and $10/mo DoorDash promo (DoorDash only, must pay with this card).'],
+    amex:  ['1%', 1, ''],
+    disc:  ['1%', 1, 'Delivery apps usually don’t count as restaurants for Discover.'] },
+  { id: 'gas', icon: '⛽', name: 'Gas & EV charging', sub: 'Gas stations, EV chargers',
+    chase: ['3x', 3, 'Gas and EV charging. Costco gas counts.'],
+    amex:  ['3%', 3, 'U.S. gas stations only (no EV charging).'],
+    disc:  ['1%', 1, 'Discover/Amex not accepted at Costco gas.'] },
+  { id: 'streaming', icon: '📺', name: 'Streaming', sub: 'Netflix, Spotify, Disney+, Hulu, YouTube TV…',
+    amex:  ['6%', 6, 'Select U.S. streaming. Disney+/Hulu/ESPN also get up to $10/mo back (enroll).'],
+    chase: ['3x', 3, 'Top streaming services.'],
+    disc:  ['1%', 1, ''] },
+  { id: 'utilities', icon: '💡', name: 'Utilities & phone', sub: 'Electric, gas, water, internet, cable, phone',
+    chase: ['1x', 1, ''],
+    amex:  ['1%', 1, ''],
+    disc:  ['1%', 1, 'Pay online or by phone, directly to the provider.'] },
+  { id: 'entertainment', icon: '🎟️', name: 'Entertainment', sub: 'Movies, concerts, sports, theme parks, zoos',
+    chase: ['1x', 1, ''],
+    amex:  ['1%', 1, 'Amex presale tickets available for some events.'],
+    disc:  ['1%', 1, 'Ticket purchases; not streaming, golf, or third-party park tickets.'] },
+  { id: 'transit', icon: '🚕', name: 'Uber, taxi, parking, tolls', sub: 'Rideshare, trains, buses, subway, tolls',
+    amex:  ['3%', 3, 'Transit: taxis, rideshare, parking, tolls, trains, buses.'],
+    chase: ['2x', 2, 'Counts as travel.'],
+    disc:  ['1%', 1, ''] },
+  { id: 'lyft', icon: '🚗', name: 'Lyft', sub: 'Rides, bikes, scooters',
+    chase: ['5x', 5, 'Through Sep 30, 2027 (then 2x).'],
+    amex:  ['3%', 3, 'Rideshare counts as transit.'],
+    disc:  ['1%', 1, ''] },
+  { id: 'travel', icon: '✈️', name: 'Flights, hotels, car rental', sub: 'Booked directly',
+    chase: ['2x', 2, '5x if booked in Chase Travel. Includes trip insurance and primary rental car coverage.'],
+    amex:  ['1%', 1, 'Secondary rental car coverage only.'],
+    disc:  ['1%', 1, ''] },
+  { id: 'rentals', icon: '🏡', name: 'Airbnb / Vrbo', sub: 'Vacation home rentals',
+    chase: ['3x', 3, 'Booked directly with Airbnb, Vrbo and other top brands.'],
+    amex:  ['1%', 1, ''],
+    disc:  ['1%', 1, ''] },
+  { id: 'warehouse', icon: '📦', name: 'Costco & warehouse clubs', sub: 'Costco, BJ’s, Sam’s Club',
+    chase: ['1x', 1, 'Costco takes only Visa → Chase is the only option at Costco.'],
+    disc:  ['1%', 1, 'Not accepted at Costco. OK at BJ’s / Sam’s.'],
+    amex:  ['1%', 1, 'Not accepted at Costco.'] },
+  { id: 'shopping', icon: '🛍️', name: 'Amazon, Target, Walmart', sub: 'General shopping, clothing, online',
+    chase: ['1x', 1, ''],
+    disc:  ['1%', 1, ''],
+    amex:  ['1%', 1, 'Can pay Amazon orders with Amex cash back.'] },
+  { id: 'drugstore', icon: '💊', name: 'Pharmacy', sub: 'CVS, Walgreens, Rite Aid',
+    chase: ['1x', 1, ''],
+    disc:  ['1%', 1, ''],
+    amex:  ['1%', 1, ''] },
+  { id: 'home', icon: '🔨', name: 'Home improvement', sub: 'Home Depot, Lowe’s',
+    chase: ['1x', 1, ''],
+    disc:  ['1%', 1, ''],
+    amex:  ['1%', 1, 'Return protection + purchase protection to $1,000/item.'] },
+  { id: 'bigticket', icon: '💻', name: 'Big purchase', sub: 'Electronics, appliances, furniture',
+    amex:  ['1%', 1.4, 'Best protection: return protection ($300/item), purchase protection 90 days up to $1,000, +1 yr warranty.'],
+    chase: ['1x', 1, 'Purchase protection 120 days up to $500/item, +1 yr warranty.'],
+    disc:  ['1%', 1, 'No purchase protection.'] },
+  { id: 'abroad', icon: '🌍', name: 'Outside the U.S.', sub: 'Foreign purchases, foreign websites',
+    chase: ['1x', 1, 'No foreign transaction fee. Visa widely accepted.'],
+    disc:  ['1%', 0.9, 'No foreign fee, but often not accepted abroad.'],
+    amex:  ['−1.7%', -1.7, 'AVOID: 2.7% foreign transaction fee.'], avoid: 'amex' },
+  { id: 'other', icon: '🧾', name: 'Everything else', sub: 'Anything not listed',
+    chase: ['1x', 1, ''],
+    disc:  ['1%', 1, ''],
+    amex:  ['1%', 1, ''] },
+];
+
+/* ---------------------------------------------------------------------
+   Activation / enrollment items
+   when: 'quarterly-discover' is generated automatically.
+   --------------------------------------------------------------------- */
+const ACTIVATIONS = {
+  disc: [
+    { id: 'disc-match', info: true, t: 'Cashback Match', h: 'If this is your first card year, Discover matches all cash back at year end. Nothing to do.' },
+  ],
+  amex: [
+    { id: 'amex-disney', t: 'Enroll: Disney Streaming Credit', h: 'Amex app → Benefits → Disney Streaming Credit → Enroll. Then pay Disney+, Hulu or ESPN on their U.S. sites with this card. Up to $10 back every month.', once: true },
+    { id: 'amex-offers', t: 'Add Amex Offers', h: 'Amex app → Offers. Tap “Add to card” before shopping. New offers appear often — check monthly.', monthly: true },
+    { id: 'amex-cap', info: true, t: 'Grocery 6% cap resets Jan 1', h: '$6,000/yr at U.S. supermarkets. Counts by calendar year.', date: 'next-jan1' },
+    { id: 'amex-fee', info: true, t: '$95 annual fee', h: 'Posts once a year on your card anniversary (first year $0 for new cardmembers).' },
+  ],
+  chase: [
+    { id: 'chase-appletv', t: 'Activate: Apple TV (12 months free)', h: 'Chase app → Benefits → Apple TV. One-time; must activate by Dec 31, 2026.', once: true, due: '2026-12-31' },
+    { id: 'chase-dashpass', t: 'Activate: DashPass', h: 'DoorDash app → add Sapphire Preferred as payment → activate DashPass. Activate by Dec 31, 2029.', once: true, due: '2029-12-31' },
+    { id: 'chase-doordash10', t: 'Use $10 DoorDash promo', h: 'One non-restaurant order each month (grocery, convenience, retail). Doesn’t roll over.', monthly: true },
+    { id: 'chase-offers', t: 'Add Chase Offers', h: 'Chase app → Chase Offers. Add before shopping.', monthly: true },
+    { id: 'chase-hotel', info: true, t: '$100 hotel credit', h: 'Automatic when you book a hotel through Chase Travel. Resets each card anniversary year.' },
+    { id: 'chase-ge', info: true, t: 'Global Entry / TSA PreCheck credit', h: 'Pay the application fee with this card; up to $120 back every 4 years. Automatic.' },
+    { id: 'chase-10pct', info: true, t: 'Last 10% anniversary bonus', h: 'Discontinued. Final payout (for spend through Oct 1, 2026) arrives by Jan 31, 2027.', date: '2027-01-31' },
+    { id: 'chase-lyft', info: true, t: '5x Lyft ends', h: 'Lyft drops to 2x after this date.', date: '2027-09-30' },
+    { id: 'chase-peloton', info: true, t: '5x Peloton ends', h: 'Peloton equipment over $150.', date: '2027-12-31' },
+  ],
+};
+
+/* =====================================================================
+   App logic (no need to edit below)
+   ===================================================================== */
+const CARD = { disc: ['Discover it', 'd'], amex: ['Amex Blue Cash Preferred', 'a'], chase: ['Chase Sapphire Preferred', 'c'] };
+const today = new Date(); today.setHours(0, 0, 0, 0);
+const qKey = d => d.getFullYear() + '-Q' + (Math.floor(d.getMonth() / 3) + 1);
+const qStart = (y, q) => new Date(y, (q - 1) * 3, 1);
+const qEnd = (y, q) => new Date(y, q * 3, 0);
+const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const daysTo = d => Math.round((d - today) / 864e5);
+const store = {
+  get(k) { try { return localStorage.getItem('wc:' + k); } catch (e) { return null; } },
+  set(k, v) { try { v ? localStorage.setItem('wc:' + k, '1') : localStorage.removeItem('wc:' + k); } catch (e) {} },
+};
+
+const curKey = qKey(today);
+const curQ = DISCOVER_QUARTERS[curKey] || null;
+const curQnum = Math.floor(today.getMonth() / 3) + 1;
+
+/* ---------- Tab 1 ---------- */
+function options(cat) {
+  return ['chase', 'amex', 'disc'].map(k => {
+    let [rate, val, note] = cat[k];
+    if (k === 'chase') val = val * CHASE_CPP;
+    if (k === 'disc' && curQ && curQ.cats.includes(cat.id)) {
+      rate = '5%'; val = 5;
+      note = `Q${curQnum} bonus through ${fmt(qEnd(today.getFullYear(), curQnum))}. Must be activated. $1,500 cap shared across: ${curQ.label}.` + (note ? ' ' + note : '');
+    }
+    return { k, rate, val, note, avoid: cat.avoid === k };
+  }).sort((a, b) => b.val - a.val);
+}
+
+function renderGrid() {
+  document.getElementById('quarterNote').innerHTML = curQ
+    ? `Discover 5% now (until ${fmt(qEnd(today.getFullYear(), curQnum))}): <b>${curQ.label}</b>`
+    : `Discover 5% categories for ${curKey.replace('-', ' ')} not added yet — Discover rows show 1%.`;
+  document.getElementById('valueNote').textContent =
+    `Ranked by value. Chase points counted at ${CHASE_CPP}¢ each (travel redemption); 1¢ if you cash out.`;
+  document.getElementById('grid').innerHTML = CATEGORIES.map(c => {
+    const isBonus = curQ && curQ.cats.includes(c.id);
+    return `<button class="cat" data-id="${c.id}"><span class="ic">${c.icon}</span><span>${c.name}${isBonus ? '<span class="bonus">Discover 5% now</span>' : ''}</span></button>`;
+  }).join('');
+}
+
+function showCat(id) {
+  const c = CATEGORIES.find(x => x.id === id);
+  document.getElementById('rIcon').textContent = c.icon;
+  document.getElementById('rName').textContent = c.name;
+  document.getElementById('rSub').textContent = c.sub;
+  const opts = options(c);
+  const top = opts[0].val;
+  document.getElementById('rList').innerHTML = opts.map((o, i) => {
+    const best = o.val === top;
+    const valTxt = o.k === 'chase' && !o.avoid ? `≈${(+o.val.toFixed(2))}% value` : (o.avoid ? 'fee' : 'cash back');
+    return `<div class="opt${best ? ' best' : ''}${o.avoid ? ' avoid' : ''}">
+      <div class="rank">${i + 1}</div>
+      <div class="body"><div class="card ${CARD[o.k][1]}">${CARD[o.k][0]}${best ? '<span class="bestlabel">USE THIS</span>' : ''}</div>
+      ${o.note ? `<div class="note">${o.note}</div>` : ''}</div>
+      <div class="rate"><b class="${CARD[o.k][1]}">${o.rate}</b><small>${valTxt}</small></div></div>`;
+  }).join('');
+  const tied = opts.filter(o => o.val === top).length > 1;
+  document.getElementById('rTip').textContent = tied ? 'Tie — any of the top cards works.' : '';
+  document.getElementById('pick').hidden = true;
+  document.getElementById('result').hidden = false;
+  window.scrollTo(0, 0);
+  history.pushState({ cat: id }, '');
+}
+function showGrid() {
+  document.getElementById('pick').hidden = false;
+  document.getElementById('result').hidden = true;
+}
+
+/* ---------- Tab 2 ---------- */
+function discoverItems() {
+  // Current quarter + next 3 quarters
+  const items = [];
+  let y = today.getFullYear(), q = curQnum;
+  for (let i = 0; i < 4; i++) {
+    const key = `${y}-Q${q}`, info = DISCOVER_QUARTERS[key];
+    const start = qStart(y, q), end = qEnd(y, q);
+    const opensAround = new Date(start); opensAround.setDate(opensAround.getDate() - 17);
+    items.push({
+      id: 'disc-' + key, period: key,
+      t: `Activate ${key.replace('-', ' ')} 5%` + (info ? `: ${info.label}` : ''),
+      h: (info ? '' : 'Categories not announced yet (usually mid-month before the quarter). ') +
+         `Valid ${fmt(start)} – ${fmt(end)}. 5% only counts from the day you activate. Discover app, discover.com, or 1-800-347-2683.`,
+      start: i === 0 ? null : opensAround, due: end, quarterly: true,
+    });
+    q++; if (q > 4) { q = 1; y++; }
+  }
+  return items.concat(ACTIVATIONS.disc);
+}
+
+function periodKey(it) {
+  if (it.period) return it.period;
+  if (it.monthly) return today.getFullYear() + '-' + (today.getMonth() + 1);
+  return 'once';
+}
+
+function status(it) {
+  if (it.info) {
+    let d = it.date === 'next-jan1' ? new Date(today.getFullYear() + 1, 0, 1) : (it.date ? new Date(it.date + 'T00:00') : null);
+    if (!d) return { cls: 'later', txt: 'Automatic' };
+    const n = daysTo(d);
+    return n < 0 ? { cls: 'ok', txt: 'Passed ' + fmt(d) } : { cls: 'later', txt: fmt(d) };
+  }
+  if (it.start && it.start > today) return { cls: 'later', txt: 'Around ' + fmt(it.start) };
+  if (it.monthly) return { cls: 'soon', txt: 'This month' };
+  if (it.due) {
+    const d = it.due instanceof Date ? it.due : new Date(it.due + 'T00:00');
+    const n = daysTo(d);
+    if (n < 0) return { cls: 'ok', txt: 'Expired' };
+    if (it.quarterly || n <= 90) return { cls: 'now', txt: 'Do now · by ' + fmt(d) };
+    return { cls: 'soon', txt: 'By ' + fmt(d) };
+  }
+  return { cls: 'now', txt: 'Do now' };
+}
+
+function renderActivate() {
+  const groups = [['disc', discoverItems()], ['amex', ACTIVATIONS.amex], ['chase', ACTIVATIONS.chase]];
+  let pending = 0;
+  document.getElementById('actList').innerHTML = groups.map(([k, items]) => {
+    const rows = items.map(it => {
+      const st = status(it);
+      if (st.cls === 'ok' && !it.info) return ''; // hide expired actions
+      if (it.info) {
+        return `<div class="item"><div class="info-dot">ℹ️</div><div><div class="t">${it.t}</div><div class="h">${it.h}</div><span class="tag ${st.cls}">${st.txt}</span></div></div>`;
+      }
+      const key = it.id + ':' + periodKey(it);
+      const done = !!store.get(key);
+      if (!done && st.cls === 'now') pending++;
+      return `<label class="item${done ? ' done' : ''}"><input type="checkbox" data-key="${key}"${done ? ' checked' : ''}>
+        <div><div class="t">${it.t}</div><div class="h">${it.h}</div>
+        <span class="tag ${done ? 'ok' : st.cls}">${done ? 'Done' : st.txt}</span></div></label>`;
+    }).join('');
+    return `<div class="cardhead"><h2 class="${CARD[k][1]}">${CARD[k][0]}</h2></div>${rows}`;
+  }).join('');
+  const b = document.getElementById('badge');
+  b.hidden = !pending; b.textContent = pending;
+}
+
+document.getElementById('actList').addEventListener('change', e => {
+  if (e.target.matches('input[type=checkbox]')) { store.set(e.target.dataset.key, e.target.checked); renderActivate(); }
+});
+
+/* ---------- Tabs & nav ---------- */
+function setTab(name) {
+  document.querySelectorAll('.tabbar button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  ['use', 'activate', 'tips'].forEach(t => document.getElementById('tab-' + t).hidden = t !== name);
+  if (name === 'use') showGrid();
+  window.scrollTo(0, 0);
+}
+document.querySelector('.tabbar').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setTab(b.dataset.tab); });
+document.getElementById('grid').addEventListener('click', e => { const b = e.target.closest('.cat'); if (b) showCat(b.dataset.id); });
+document.getElementById('back').addEventListener('click', () => history.back());
+window.addEventListener('popstate', showGrid);
+
+renderGrid();
+renderActivate();
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+</script>
+</body>
+</html>
